@@ -6,10 +6,87 @@ import scene_graph2 as sg
 import basic_shapes as bs
 import transformations2 as tr
 import easy_shaders as es
+import random
+import numpy as np
+
+
 
 from OpenGL.GL import *
 
 d = 1
+
+def readFaceVertex(faceDescription):
+
+    aux = faceDescription.split('/')
+
+    assert len(aux[0]), "Vertex index has not been defined."
+
+    faceVertex = [int(aux[0]), None, None]
+
+    assert len(aux) == 3, "Only faces where its vertices require 3 indices are defined."
+
+    if len(aux[1]) != 0:
+        faceVertex[1] = int(aux[1])
+
+    if len(aux[2]) != 0:
+        faceVertex[2] = int(aux[2])
+
+    return faceVertex
+
+
+
+def readOBJ(filename, color):
+
+    vertices = []
+    normals = []
+    textCoords= []
+    faces = []
+
+    with open(filename, 'r') as file:
+        for line in file.readlines():
+            aux = line.strip().split(' ')
+            
+            if aux[0] == 'v':
+                vertices += [[float(coord) for coord in aux[1:]]]
+
+            elif aux[0] == 'vn':
+                normals += [[float(coord) for coord in aux[1:]]]
+
+            elif aux[0] == 'vt':
+                assert len(aux[1:]) == 2, "Texture coordinates with different than 2 dimensions are not supported"
+                textCoords += [[float(coord) for coord in aux[1:]]]
+
+            elif aux[0] == 'f':
+                N = len(aux)                
+                faces += [[readFaceVertex(faceVertex) for faceVertex in aux[1:4]]]
+                for i in range(3, N-1):
+                    faces += [[readFaceVertex(faceVertex) for faceVertex in [aux[i], aux[i+1], aux[1]]]]
+
+        vertexData = []
+        indices = []
+        index = 0
+
+        # Per previous construction, each face is a triangle
+        for face in faces:
+
+            # Checking each of the triangle vertices
+            for i in range(0,3):
+                vertex = vertices[face[i][0]-1]
+                normal = normals[face[i][2]-1]
+
+                vertexData += [
+                    vertex[0], vertex[1], vertex[2],
+                    color[0], color[1], color[2],
+                    normal[0], normal[1], normal[2]
+                ]
+
+            # Connecting the 3 vertices to create a triangle
+            indices += [index, index + 1, index + 2]
+            index += 3        
+
+        return bs.Shape(vertexData, indices)
+           
+
 
 class Axis(object):
 
@@ -29,102 +106,47 @@ class Axis(object):
         glUniformMatrix4fv(glGetUniformLocation(pipeline.shaderProgram, 'model'), 1, GL_TRUE, tr.identity())
         pipeline.drawShape(self.model, GL_LINES)
 
-
-class Tpose(object):
-
-    def __init__(self, texture_head):
-        gpu_body = es.toGPUShape(bs.createColorCube(0, 1, 0))
-        gpu_leg = es.toGPUShape(bs.createColorCube(0, 0, 1))
-        gpu_skin = es.toGPUShape(bs.createColorCube(1, 1, 0))
-        gpu_head = es.toGPUShape(bs.createTextureCube(texture_head), GL_REPEAT, GL_LINEAR)
-
-        # Creamos el nucleo
-        core = sg.SceneGraphNode('core')
-        core.transform = tr.scale(0.32, 0.5, 0.6)
-        core.childs += [gpu_body]
-
-        # Piernas
-        leg = sg.SceneGraphNode('leg')
-        leg.transform = tr.scale(0.14, 0.14, 0.5)
-        leg.childs += [gpu_leg]
-
-        leg_left = sg.SceneGraphNode('leg_left')
-        leg_left.transform = tr.translate(0, -0.17, -0.5)
-        leg_left.childs += [leg]
-
-        leg_right = sg.SceneGraphNode('leg_right')
-        leg_right.transform = tr.translate(0, 0.17, -0.5)
-        leg_right.childs += [leg]
-
-        # Brazos
-        arm = sg.SceneGraphNode('arm')
-        arm.transform = tr.scale(0.13, 0.5, 0.13)
-        arm.childs += [gpu_skin]
-
-        arm_left = sg.SceneGraphNode('arm_left')
-        arm_left.transform = tr.translate(0, -0.4, 0.23)
-        arm_left.childs += [arm]
-
-        arm_right = sg.SceneGraphNode('arm_right')
-        arm_right.transform = tr.translate(0, 0.4, 0.23)
-        arm_right.childs += [arm]
-
-        # Cuello
-        neck = sg.SceneGraphNode('neck')
-        neck.transform = tr.matmul([tr.scale(0.12, 0.12, 0.2), tr.translate(0, 0, 1.6)])
-        neck.childs += [gpu_skin]
-
-        # Cabeza
-        head = sg.SceneGraphNode('head')
-        head.transform = tr.matmul([tr.scale(0.35, 0.35, 0.35), tr.translate(-0.08, 0, 1.75)])
-        head.childs += [gpu_skin]
-
-        body = sg.SceneGraphNode('body')
-        body.childs += [arm_left, arm_right, leg_left, leg_right, core, neck, head]
-
-        face = sg.SceneGraphNode('face')
-        face.transform = tr.matmul([tr.scale(0.3, 0.3, 0.3), tr.translate(0, 0, 2)])
-        face.childs += [gpu_head]
-
-        body_tr = sg.SceneGraphNode('bodyTR')
-        body_tr.childs += [body, face]
-
-        self.model = body_tr
-        self.show_face = True
-
-    def toggle(self):
-        self.show_face = not self.show_face
-
-    def draw(self, pipeline_color, pipeline_texture, projection, view):
-        # Dibujamos el mono de color con el pipeline_color
-        glUseProgram(pipeline_color.shaderProgram)
-        glUniformMatrix4fv(glGetUniformLocation(pipeline_color.shaderProgram, 'projection'), 1, GL_TRUE,
-                           projection)
-        glUniformMatrix4fv(glGetUniformLocation(pipeline_color.shaderProgram, 'view'), 1, GL_TRUE, view)
-        sg.drawSceneGraphNode(sg.findNode(self.model, 'body'), pipeline_color)
-
-        # Dibujamos la cara (texturas)
-        if self.show_face:
-            glUseProgram(pipeline_texture.shaderProgram)
-            glUniformMatrix4fv(glGetUniformLocation(pipeline_texture.shaderProgram, 'projection'), 1, GL_TRUE,
-                               projection)
-            glUniformMatrix4fv(glGetUniformLocation(pipeline_texture.shaderProgram, 'view'), 1, GL_TRUE, view)
-            sg.drawSceneGraphNode(sg.findNode(self.model, 'face'), pipeline_texture)
-
 class Mapa(object):
 
-    def __init__(self, texture_map):
+    def __init__(self, tamaño, texture_map, texture_esquina):
+        self.tamaño = tamaño
+
         gpu_map = es.toGPUShape(bs.createTextureQuad(texture_map), GL_REPEAT, GL_NEAREST)
+        gpu_esquina_quad = es.toGPUShape(bs.createTextureQuad(texture_esquina), GL_REPEAT, GL_NEAREST)  # negro
+        
+        esquina_vertical = sg.SceneGraphNode('esquinaVertical')
+        esquina_vertical.transform = tr.scale(d*4/self.tamaño,2.1,1)
+        esquina_vertical.childs += [gpu_esquina_quad]
+
+        esquina_horizontal = sg.SceneGraphNode('esquinaHorizontal')
+        esquina_horizontal.transform = tr.scale(2,d*4/self.tamaño,1)
+        esquina_horizontal.childs += [gpu_esquina_quad]
+
+        esquina_der = sg.SceneGraphNode('esquinaDerecha')
+        esquina_der.transform = tr.translate(1,0,0)
+        esquina_der.childs += [esquina_vertical]
+
+        esquina_izq = sg.SceneGraphNode('esquinaIzquierda')
+        esquina_izq.transform = tr.translate(-1,0,0)
+        esquina_izq.childs += [esquina_vertical]
+
+        esquina_sup = sg.SceneGraphNode('esquinaIzquierda')
+        esquina_sup.transform = tr.translate(0,1,0)
+        esquina_sup.childs += [esquina_horizontal]
+
+        esquina_inf = sg.SceneGraphNode('esquinaIzquierda')
+        esquina_inf.transform = tr.translate(0,-1,0)
+        esquina_inf.childs += [esquina_horizontal]
 
         # Creamos el mapa con sus dimensiones
         map = sg.SceneGraphNode('map')
-        map.transform = tr.scale(1, 1, 0.3)
+        map.transform = tr.uniformScale(1.9)
         map.childs += [gpu_map]
 
         #colocamos el mapa donde debe ir
         mapa = sg.SceneGraphNode('mapa')
         mapa.transform = tr.translate(0, 0, 0)
-        mapa.childs += [map]
+        mapa.childs += [map, esquina_der, esquina_izq, esquina_sup, esquina_inf]
 
         self.model = mapa
     
@@ -156,8 +178,8 @@ class Snake(object):
 
         # Figuras básicas
         #gpu_trozo = es.toGPUShape(bs.createColorQuad(0, 0.3, 0))  # verde
-        gpu_trozo = es.toGPUShape(bs.createColorCube(1, 0, 0))
-        gpu_trozo_cabeza =  es.toGPUShape(bs.createColorCube(0, 0, 1))
+        gpu_trozo = es.toGPUShape(bs.createColorCube(0, 0.5, 0.5))
+        gpu_trozo_cabeza =  es.toGPUShape(bs.createColorCube(0, 0.5, 0.5))
 
         
 
@@ -234,9 +256,9 @@ class Snake(object):
         if old_dir != 'up':
             self.dir[0][0] = 'down'
 
-    def come_manzana(self, manzana: 'Manzana'):
+    def come_manzana(self, kirby: 'Kirby'):
         #if math.trunc(100*manzana.pos_x) == math.trunc(100*self.pos[0][0]) and math.trunc(100*manzana.pos_y) == math.trunc(100*self.pos[0][1]):
-        if abs(manzana.pos_x - self.pos[0][0]) < d*0.5/self.tamaño and abs(manzana.pos_y - self.pos[0][1])< d*0.5/self.tamaño:
+        if abs(kirby.pos_x - self.pos[0][0]) < d*0.5/self.tamaño and abs(kirby.pos_y - self.pos[0][1])< d*0.5/self.tamaño:
             self.comio = True
 
     def come_cola(self):
@@ -260,7 +282,7 @@ class Snake(object):
         self.dir += [['stop','stop']]
   
 
-        gpu_trozo = es.toGPUShape(bs.createTextureQuad('cuerpo.png'), GL_REPEAT, GL_NEAREST)
+        gpu_trozo = es.toGPUShape(bs.createColorCube(0, 0.5, 0.5))
 
         trozo = sg.SceneGraphNode('trozo')
         trozo.transform = tr.uniformScale(d*2/self.tamaño)
@@ -270,3 +292,59 @@ class Snake(object):
         aum.childs += [trozo]
 
         self.serpiente += [aum]
+
+class Kirby(object):
+    def __init__(self, tamaño, obj, obj_texture):
+        self.tamaño = tamaño
+
+        gpu_kirby = es.toGPUShape(readOBJ(obj, (1,0.7,0.8)))
+        
+        prekirby = sg.SceneGraphNode('prekirby')
+        prekirby.transform = tr.matmul([
+                tr.uniformScale(0.15),
+                tr.rotationX(np.pi/2)])
+        prekirby.childs += [gpu_kirby]
+
+        self.pos_x = -1 + d*3/self.tamaño + d*2/self.tamaño*random.randint(0,self.tamaño-3)
+        self.pos_y = -1 + d*3/self.tamaño + d*2/self.tamaño*random.randint(0,self.tamaño-3)
+
+        kirby = sg.SceneGraphNode('kirby')
+        #kirby.childs += [prekirby]
+        kirby.childs += [prekirby]
+
+        self.model = kirby
+        
+
+
+    def draw(self, pipeline, projection, view, viewPos):
+        self.model.transform = tr.translate(self.pos_x,self.pos_y,0)
+
+        glUseProgram(pipeline.shaderProgram)
+        glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "La"), 1.0, 1.0, 1.0)
+        glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "Ld"), 1.0, 1.0, 1.0)
+        glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "Ls"), 1.0, 1.0, 1.0)
+
+        glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "Ka"), 0.2, 0.2, 0.2)
+        glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "Kd"), 0.9, 0.9, 0.9)
+        glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "Ks"), 1.0, 1.0, 1.0)
+
+        glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "lightPosition"), -3, 0, 3)
+        glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1], viewPos[2])
+        glUniform1ui(glGetUniformLocation(pipeline.shaderProgram, "shininess"), 100)
+        glUniform1f(glGetUniformLocation(pipeline.shaderProgram, "constantAttenuation"), 0.001)
+        glUniform1f(glGetUniformLocation(pipeline.shaderProgram, "linearAttenuation"), 0.1)
+        glUniform1f(glGetUniformLocation(pipeline.shaderProgram, "quadraticAttenuation"), 0.01)
+
+        glUniformMatrix4fv(glGetUniformLocation(pipeline.shaderProgram, "projection"), 1, GL_TRUE, projection)
+        glUniformMatrix4fv(glGetUniformLocation(pipeline.shaderProgram, "view"), 1, GL_TRUE, view)
+        glUniformMatrix4fv(glGetUniformLocation(pipeline.shaderProgram, "model"), 1, GL_TRUE, tr.uniformScale(0.01))
+        sg.drawSceneGraphNode(self.model, pipeline)
+
+    def malpuesta(self, snake: 'Snake'):
+        for i in range(len(snake.pos)):
+            if abs(self.pos_x - self.pos[i][0]) < d*0.5/self.tamaño and abs(self.pos[i][0] - self.pos[i][0]) < d*0.5/self.tamaño:
+                self.comio_cola = True
+
+    def fue_comida(self, snake: 'Snake'):
+        self.pos_x = -1 + d*3/self.tamaño + d*2/self.tamaño*random.randint(0,self.tamaño-3)
+        self.pos_y = -1 + d*3/self.tamaño + d*2/self.tamaño*random.randint(0,self.tamaño-3)

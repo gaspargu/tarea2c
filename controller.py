@@ -13,9 +13,10 @@ class Controller(object):
     def __init__(self):
         self.fill_polygon = True
         self.toggle = {}
+        self.model = None
 
-    def set_toggle(self, tp, key):
-        self.toggle[key] = tp
+    def set_snake(self, m):
+        self.model = m
 
     def on_key(self, window, key, scancode, action, mods):
         if action != glfw.PRESS:
@@ -24,11 +25,30 @@ class Controller(object):
         if key == glfw.KEY_SPACE:
             self.fill_polygon = not self.fill_polygon
 
-        elif key == glfw.KEY_F:
-            self.toggle['face'].toggle()
+        if key == glfw.KEY_ESCAPE:
+            sys.exit()
 
-        elif key == glfw.KEY_A:
-            self.toggle['axis'].toggle()
+        # Controlador modifica al modelo
+        elif key == glfw.KEY_LEFT and action == glfw.PRESS:
+            # print('Move left')
+            self.model.move_left()
+
+        elif key == glfw.KEY_RIGHT and action == glfw.PRESS:
+            # print('Move left')
+            self.model.move_right()
+
+        elif key == glfw.KEY_X and action == glfw.PRESS:
+            # print('Move left')
+            self.model.crece()            
+
+        elif key == glfw.KEY_UP and action == glfw.PRESS:
+            # print('Move left')
+            self.model.move_up()
+            
+
+        elif key == glfw.KEY_DOWN and action == glfw.PRESS:
+            # print('Move left')
+            self.model.move_down()
 
         elif key == glfw.KEY_ESCAPE:
             sys.exit()
