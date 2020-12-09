@@ -265,7 +265,7 @@ class Snake(object):
     def come_cola(self):
         for i in range(1,len(self.pos)):
             if abs(self.pos[0][0] - self.pos[i][0]) < d/self.tamaño and abs(self.pos[0][1] - self.pos[i][1]) < d/self.tamaño:
-                self.comio_cola = True
+                self.die = True
 
 
     def crece(self):
@@ -293,6 +293,20 @@ class Snake(object):
         aum.childs += [trozo]
 
         self.serpiente += [aum]
+    
+    def choca_esquina(self):
+        condicionx = self.pos[0][0] > 1 - d*2/self.tamaño or self.pos[0][0] < -1 + d*2/self.tamaño 
+        condiciony = self.pos[0][1] > 1 - d*2/self.tamaño or self.pos[0][1] < -1 + d*2/self.tamaño
+        condicion_come_cola = self.comio_cola
+        if condicionx or condiciony or condicion_come_cola:
+            #gpu_gameover = es.toGPUShape(bs.createTextureQuad('gameover.png'), GL_REPEAT, GL_NEAREST) # azul
+
+            #gameover = sg.SceneGraphNode('gameover')
+            #gameover.transform = tr.uniformScale(2)
+            #gameover.childs += [gpu_gameover]
+
+            #self.model = gameover
+            self.die = True
 
 class Kirby(object):
     def __init__(self, tamaño, obj, obj_texture):
@@ -351,4 +365,41 @@ class Kirby(object):
     def fue_comida(self, snake: 'Snake'):
         self.pos_x = -1 + d*3/self.tamaño + d*2/self.tamaño*random.randint(0,self.tamaño-3)
         self.pos_y = -1 + d*3/self.tamaño + d*2/self.tamaño*random.randint(0,self.tamaño-3)
+
+class GameOver(object):
+    def __init__(self):
+        game1 = es.toGPUShape(bs.createTextureQuad('img/gameover.png'), GL_REPEAT, GL_NEAREST)
+        game2 = es.toGPUShape(bs.createTextureQuad('img/gameover2.png'), GL_REPEAT, GL_NEAREST)
+
+
+        game_over1 = sg.SceneGraphNode('gameover')
+        game_over1.transform = tr.matmul([tr.uniformScale(1.7),
+                tr.translate(0,0,1)])
+        game_over1.childs += [game1]
+
+        game_over2 = sg.SceneGraphNode('gameover')
+        game_over2.transform = tr.matmul([tr.uniformScale(1.7),
+                tr.translate(0,0,1)])
+        game_over2.childs += [game2]
+
+        self.model1 = game_over1
+        self.model2 = game_over2
+
+    def draw1(self, pipeline, projection, view):
+        glUseProgram(pipeline.shaderProgram)
+        glUniformMatrix4fv(glGetUniformLocation(pipeline.shaderProgram, 'projection'), 1, GL_TRUE,
+                           projection)
+        glUniformMatrix4fv(glGetUniformLocation(pipeline.shaderProgram, 'view'), 1, GL_TRUE, view)
+        sg.drawSceneGraphNode(self.model1, pipeline)
+
+    def draw2(self, pipeline, projection, view):
+        glUseProgram(pipeline.shaderProgram)
+        glUniformMatrix4fv(glGetUniformLocation(pipeline.shaderProgram, 'projection'), 1, GL_TRUE,
+                           projection)
+        glUniformMatrix4fv(glGetUniformLocation(pipeline.shaderProgram, 'view'), 1, GL_TRUE, view)
+        sg.drawSceneGraphNode(self.model2, pipeline)
+
+    
+
+
 

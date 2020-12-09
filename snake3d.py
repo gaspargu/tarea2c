@@ -9,11 +9,12 @@ import sys
 import random
 
 
+import basic_shapes as bs
 import transformations2 as tr2
 import easy_shaders as es
 import lighting_shaders as ls
 
-from model import Axis, Mapa, Snake, Kirby
+from model import Axis, Mapa, Snake, Kirby, GameOver
 from controller import Controller
 
 
@@ -59,6 +60,8 @@ if __name__ == '__main__':
     glEnable(GL_DEPTH_TEST)
 
     # Creamos los objetos
+    
+    game_over = GameOver()
     axis = Axis()
     snake = Snake(tamaño)
     kirby = Kirby(tamaño, 'img/carrot.obj', 'img/kirby.png')
@@ -80,17 +83,19 @@ if __name__ == '__main__':
     )
 
     contador = 0
+    frames = True
 
     while not glfw.window_should_close(window):
 
         t = glfw.get_time()
+        theta = glfw.get_time()
 
         # Using GLFW to check for input events
         glfw.poll_events()
 
         
 
-        if controller.primera_persona:
+        if controller.primera_persona and not(snake.die):
             # Creamos la camara y la proyección
             
             v = 0.2
@@ -127,6 +132,17 @@ if __name__ == '__main__':
                 np.array([0, 0, 0]),  # Donde estoy mirando
                 np.array([0, 1, 0])  # Cual es vector UP
             )
+        elif snake.die:
+            # Creamos la camara y la proyección
+            projection = tr2.perspective(30, 1, 0.1, 100)
+            #viewPos = np.array([-30, -30, 60])
+            viewPos = np.array([0, 0, 6])
+            view = tr2.lookAt(
+                viewPos,  # Donde está parada la cámara
+                np.array([0, 0, 0]),  # Donde estoy mirando
+                np.array([0, 1, 0])  # Cual es vector UP
+            )
+
         else:
             # Creamos la camara y la proyección
             #projection = tr2.ortho(-1.5, 1.5, -1.5, 1.5, 0.1, 600)
@@ -163,6 +179,7 @@ if __name__ == '__main__':
                 contador = 0
             
             t = glfw.set_time(0)
+            frames = not(frames)
 
             snake.update()
 
@@ -178,9 +195,10 @@ if __name__ == '__main__':
             
             snake.come_manzana(kirby)
             snake.come_cola()
+            snake.choca_esquina()
             if snake.comio:
                 print("ñomi ñomi")
-                if random.random() < 0.2:
+                if random.random() < 0.3:
                     kirby.atenuacion = 0.01
                     kirby.ka = 1
                     kirby.fue_comida(snake)
@@ -205,9 +223,20 @@ if __name__ == '__main__':
         #glUseProgram(lightShaderProgram.shaderProgram)
         kirby.draw(lightShaderProgram, projection, view, viewPos)
 
-        #if True:
-        #    game_over = es.toGPUShape(bs.createTextureQuad('img/gameover.png'), GL_REPEAT, GL_NEAREST)
+        
 
+        if snake.die and frames:
+
+            game_over.draw1(textureShaderProgram, projection, view)
+
+        if snake.die and not(frames):
+
+            game_over.draw2(textureShaderProgram, projection, view)
+
+
+
+
+            
         
 
         #tpose.draw(colorShaderProgram, textureShaderProgram, projection, view)
