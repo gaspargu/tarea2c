@@ -373,12 +373,12 @@ class GameOver(object):
 
 
         game_over1 = sg.SceneGraphNode('gameover')
-        game_over1.transform = tr.matmul([tr.uniformScale(1.7),
+        game_over1.transform = tr.matmul([tr.uniformScale(2),
                 tr.translate(0,0,1)])
         game_over1.childs += [game1]
 
         game_over2 = sg.SceneGraphNode('gameover')
-        game_over2.transform = tr.matmul([tr.uniformScale(1.7),
+        game_over2.transform = tr.matmul([tr.uniformScale(2),
                 tr.translate(0,0,1)])
         game_over2.childs += [game2]
 
