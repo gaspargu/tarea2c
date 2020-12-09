@@ -160,6 +160,7 @@ class Mapa(object):
 class Snake(object):
     def __init__(self, tamaño):
         self.tamaño = tamaño
+        self.velocidad = 0.1
 
         #centra la cabeza de la serpiente al comienzo
         if self.tamaño%2 == 0:
@@ -296,6 +297,8 @@ class Snake(object):
 class Kirby(object):
     def __init__(self, tamaño, obj, obj_texture):
         self.tamaño = tamaño
+        self.atenuacion = 0.1
+        self.ka = 0.2
 
         gpu_kirby = es.toGPUShape(readOBJ(obj, (1,0.7,0.8)))
         
@@ -324,16 +327,16 @@ class Kirby(object):
         glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "Ld"), 1.0, 1.0, 1.0)
         glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "Ls"), 1.0, 1.0, 1.0)
 
-        glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "Ka"), 0.2, 0.2, 0.2)
+        glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "Ka"), 0.2, self.ka, 0.2)
         glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "Kd"), 0.9, 0.9, 0.9)
         glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "Ks"), 1.0, 1.0, 1.0)
 
         glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "lightPosition"), -3, 0, 3)
         glUniform3f(glGetUniformLocation(pipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1], viewPos[2])
         glUniform1ui(glGetUniformLocation(pipeline.shaderProgram, "shininess"), 100)
-        glUniform1f(glGetUniformLocation(pipeline.shaderProgram, "constantAttenuation"), 0.001)
+        glUniform1f(glGetUniformLocation(pipeline.shaderProgram, "constantAttenuation"), 0.01)
         glUniform1f(glGetUniformLocation(pipeline.shaderProgram, "linearAttenuation"), 0.1)
-        glUniform1f(glGetUniformLocation(pipeline.shaderProgram, "quadraticAttenuation"), 0.01)
+        glUniform1f(glGetUniformLocation(pipeline.shaderProgram, "quadraticAttenuation"), self.atenuacion)
 
         glUniformMatrix4fv(glGetUniformLocation(pipeline.shaderProgram, "projection"), 1, GL_TRUE, projection)
         glUniformMatrix4fv(glGetUniformLocation(pipeline.shaderProgram, "view"), 1, GL_TRUE, view)
@@ -348,3 +351,4 @@ class Kirby(object):
     def fue_comida(self, snake: 'Snake'):
         self.pos_x = -1 + d*3/self.tamaño + d*2/self.tamaño*random.randint(0,self.tamaño-3)
         self.pos_y = -1 + d*3/self.tamaño + d*2/self.tamaño*random.randint(0,self.tamaño-3)
+

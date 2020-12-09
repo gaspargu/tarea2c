@@ -6,6 +6,8 @@ import glfw
 from OpenGL.GL import *
 import numpy as np
 import sys
+import random
+
 
 import transformations2 as tr2
 import easy_shaders as es
@@ -86,6 +88,57 @@ if __name__ == '__main__':
         # Using GLFW to check for input events
         glfw.poll_events()
 
+        
+
+        if controller.primera_persona:
+            # Creamos la camara y la proyección
+            
+            v = 0.2
+            w = 0
+            if snake.dir[0][0] == 'left':
+                v = 0
+                w = -0.2
+            elif snake.dir[0][0] == 'right':
+                v = 0
+                w = 0.2
+            elif snake.dir[0][0] == 'up':
+                v = 0.2
+                w = 0
+            else:
+                v = -0.2
+                w = 0
+            projection = tr2.perspective(20, 2/1, 0.1, 100)
+            #viewPos = np.array([-30, -30, 60])
+            viewPos = np.array([snake.pos[0][0]-w*0.7, snake.pos[0][1]-v*0.7, 0.06])
+            
+
+            view = tr2.lookAt(
+                viewPos,  # Donde está parada la cámara
+                np.array([snake.pos[0][0]+w*1.5, snake.pos[0][1]+v*1.5, 0]),  # Donde estoy mirando
+                np.array([0, 0, 1])  # Cual es vector UP
+            )
+        elif controller.vista_superior:
+            # Creamos la camara y la proyección
+            projection = tr2.ortho(-1.5, 1.5, -1.5, 1.5, 0.1, 600)
+            #viewPos = np.array([-30, -30, 60])
+            viewPos = np.array([0, 0, 60])
+            view = tr2.lookAt(
+                viewPos,  # Donde está parada la cámara
+                np.array([0, 0, 0]),  # Donde estoy mirando
+                np.array([0, 1, 0])  # Cual es vector UP
+            )
+        else:
+            # Creamos la camara y la proyección
+            #projection = tr2.ortho(-1.5, 1.5, -1.5, 1.5, 0.1, 600)
+            projection = tr2.perspective(30, 1, 0.1, 100)
+            #viewPos = np.array([-30, -30, 60])
+            viewPos = np.array([-3, -3, 4])
+            view = tr2.lookAt(
+                viewPos,  # Donde está parada la cámara
+                np.array([0, 0, 0]),  # Donde estoy mirando
+                np.array([0, 0, 1])  # Cual es vector UP
+            )
+
         # Filling or not the shapes depending on the controller state
         if controller.fill_polygon:
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
@@ -95,11 +148,15 @@ if __name__ == '__main__':
         # Clearing the screen in both, color and depth
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
+        
+
+
+
         velocidad = 0.1 #Velocidad snake: Mayor es más lento
 
         tamaño_snake = len(snake.dir)
 
-        if t>velocidad:
+        if t>snake.velocidad:
             if snake.comiendo:
                 contador += 1
             else:
@@ -123,9 +180,22 @@ if __name__ == '__main__':
             snake.come_cola()
             if snake.comio:
                 print("ñomi ñomi")
-                kirby.fue_comida(snake)
-                snake.comiendo = True
-                snake.comio = False
+                if random.random() < 0.2:
+                    kirby.atenuacion = 0.01
+                    kirby.ka = 1
+                    kirby.fue_comida(snake)
+                    snake.comiendo = True
+                    snake.comio = False
+                    snake.velocidad = 0.03
+                else:
+                    kirby.atenuacion = 0.1
+                    kirby.ka = 0.2
+                    kirby.fue_comida(snake)
+                    snake.comiendo = True
+                    snake.comio = False
+                    snake.velocidad = 0.1
+                
+                
 
         
         # Dibujamos
@@ -134,6 +204,11 @@ if __name__ == '__main__':
         snake.draw(colorShaderProgram, projection, view)
         #glUseProgram(lightShaderProgram.shaderProgram)
         kirby.draw(lightShaderProgram, projection, view, viewPos)
+
+        #if True:
+        #    game_over = es.toGPUShape(bs.createTextureQuad('img/gameover.png'), GL_REPEAT, GL_NEAREST)
+
+        
 
         #tpose.draw(colorShaderProgram, textureShaderProgram, projection, view)
 
