@@ -308,7 +308,7 @@ class Snake(object):
             #self.model = gameover
             self.die = True
 
-class Kirby(object):
+class Objeto(object):
     def __init__(self, tamaño, obj, obj_texture):
         self.tamaño = tamaño
         self.atenuacion = 0.1

@@ -14,7 +14,7 @@ import transformations2 as tr2
 import easy_shaders as es
 import lighting_shaders as ls
 
-from model import Axis, Mapa, Snake, Kirby, GameOver
+from model import Axis, Mapa, Snake, Objeto, GameOver
 from controller import Controller
 
 
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     game_over = GameOver()
     axis = Axis()
     snake = Snake(tamaño)
-    kirby = Kirby(tamaño, 'img/carrot.obj', 'img/kirby.png')
+    objeto = Objeto(tamaño, 'img/carrot.obj', 'img/kirby.png')
     mapa = Mapa(tamaño, 'img/pasto.png', 'img/esquina.png')
 
     controller.set_snake(snake)
@@ -193,22 +193,22 @@ if __name__ == '__main__':
                 snake.dir[i+1][0] = snake.dir[i][0]
             
             
-            snake.come_manzana(kirby)
+            snake.come_manzana(objeto)
             snake.come_cola()
             snake.choca_esquina()
             if snake.comio:
                 print("ñomi ñomi")
                 if random.random() < 0.3:
-                    kirby.atenuacion = 0.01
-                    kirby.ka = 1
-                    kirby.fue_comida(snake)
+                    objeto.atenuacion = 0.01
+                    objeto.ka = 1
+                    objeto.fue_comida(snake)
                     snake.comiendo = True
                     snake.comio = False
                     snake.velocidad = 0.03
                 else:
-                    kirby.atenuacion = 0.1
-                    kirby.ka = 0.2
-                    kirby.fue_comida(snake)
+                    objeto.atenuacion = 0.1
+                    objeto.ka = 0.2
+                    objeto.fue_comida(snake)
                     snake.comiendo = True
                     snake.comio = False
                     snake.velocidad = 0.1
@@ -221,7 +221,7 @@ if __name__ == '__main__':
         mapa.draw(textureShaderProgram, projection, view)
         snake.draw(colorShaderProgram, projection, view)
         #glUseProgram(lightShaderProgram.shaderProgram)
-        kirby.draw(lightShaderProgram, projection, view, viewPos)
+        objeto.draw(lightShaderProgram, projection, view, viewPos)
 
         
 
